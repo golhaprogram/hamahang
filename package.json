@@ -1,0 +1,19 @@
+{
+  "name": "hamahang",
+  "version": "0.1.0",
+  "description": "Tap-to-sync lyrics to audio in the browser. Exports WebVTT/LRC and can open a GitHub pull request.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/ham-ahang.js",
+    "./model": "./src/model.js",
+    "./formats": "./src/formats.js",
+    "./github": "./src/github.js"
+  },
+  "files": ["src"],
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8000"
+  },
+  "repository": { "type": "git", "url": "https://github.com/golhaprogram/hamahang.git" }
+}
