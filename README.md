@@ -3,7 +3,7 @@
 *Hamahang* (هماهنگ: ham + āhang, "together" + "melody", meaning "in sync") times lyrics to audio by tapping along, in any browser, including on a phone. Built for Persian poetry sung on the [Golha](https://golhaprogram.com) radio programs, so right-to-left text is a first-class case, but nothing in it is specific to Golha.
 
 - **Tap to time:** press play, tap **This line** as each line starts and **Silence** when the singing stops.
-- **Fix as you go:** tap any line to jump back and re-time it, nudge ±0.25 s, undo, play at 0.5–0.9× speed.
+- **Fix as you go:** tap any line to jump back and re-time it, nudge ±0.25 s, skip ±3/5/10 s, undo, play at 0.5–0.9× speed.
 - **Never lose work:** progress is saved in the browser for each audio file and restored when you come back.
 - **Preview:** plays the audio with the current line highlighted, so you can check the timing.
 - **Export:** WebVTT (`.vtt`) or LRC, as a download, copied to the clipboard, or **as a pull request** to a GitHub repo.
@@ -12,6 +12,10 @@
 ## Use it
 
 Open the page, give it an audio file (a URL or a file on your device), paste the lyrics one line per row, and press **Start**.
+
+A row wrapped in parentheses, like `(مولوی)`, or starting with `#` is a label: it's shown as a heading but never timed or exported. Use it for poet names or section titles.
+
+**Silence** is for the end of a block. Each line normally stays on screen until the next one starts, which is right for lines sung back to back. Before an instrumental passage, an announcer, or a long gap, tap **Silence** when the voice stops so the text clears instead of hanging over the music.
 
 Everything can also be set with URL parameters, so another site can link straight into a ready-to-time session:
 
@@ -36,7 +40,7 @@ index.html?audio=https://example.com/256.mp3&lyrics=https://example.com/256.txt&
 
 ### Keyboard
 
-Space or Enter = this line · S = silence · Z or Backspace = undo · ← / → = 3 s · P = play/pause
+Space or Enter = this line · S = silence · Z or Backspace = undo · ← / → = 3 s (with Shift: 10 s) · P = play/pause
 
 ## Pull requests
 

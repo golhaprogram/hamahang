@@ -4,18 +4,32 @@
 //   start: seconds or null (not yet stamped)
 //   end:   seconds or null (null = runs until the next stamped line starts)
 // cursor: index of the next line the "stamp" action will time.
+//
+// A line wrapped entirely in parentheses, e.g. "(مولوی)", or starting with "#"
+// is a label (a poet's name, a section heading): it is shown but never timed
+// and never exported.
+
+export function isLabel(text) {
+  const t = String(text).trim();
+  return /^[(（].*[)）]$/.test(t) || t.startsWith("#");
+}
 
 export function parseLines(text) {
   return String(text ?? "")
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0)
-    .map((text) => ({ text, start: null, end: null }));
+    .map((text) => ({ text, start: null, end: null, label: isLabel(text) }));
 }
 
 export class SyncModel {
   constructor(lines = []) {
-    this.lines = lines.map((l) => ({ text: l.text, start: l.start ?? null, end: l.end ?? null }));
+    this.lines = lines.map((l) => ({
+      text: l.text,
+      start: l.start ?? null,
+      end: l.end ?? null,
+      label: l.label ?? isLabel(l.text),
+    }));
     this.cursor = this.firstUnstamped();
     this.history = [];
   }
@@ -25,16 +39,31 @@ export class SyncModel {
   }
 
   firstUnstamped() {
-    const i = this.lines.findIndex((l) => l.start == null);
+    const i = this.lines.findIndex((l) => !l.label && l.start == null);
     return i === -1 ? this.lines.length : i;
   }
 
+  get timeable() {
+    return this.lines.filter((l) => !l.label);
+  }
+
   get done() {
-    return this.lines.length > 0 && this.lines.every((l) => l.start != null);
+    const t = this.timeable;
+    return t.length > 0 && t.every((l) => l.start != null);
   }
 
   get stampedCount() {
-    return this.lines.filter((l) => l.start != null).length;
+    return this.timeable.filter((l) => l.start != null).length;
+  }
+
+  get total() {
+    return this.timeable.length;
+  }
+
+  // First timeable index at or after i.
+  nextTimeable(i) {
+    while (i < this.lines.length && this.lines[i].label) i++;
+    return i;
   }
 
   snapshot() {
@@ -53,6 +82,7 @@ export class SyncModel {
 
   // Time the line at the cursor and advance.
   stamp(t) {
+    this.cursor = this.nextTimeable(this.cursor);
     if (this.cursor >= this.lines.length) return false;
     this.snapshot();
     const t0 = Math.max(0, round(t));
@@ -62,7 +92,7 @@ export class SyncModel {
     // An earlier line's explicit end can't run past this start.
     const prev = this.prevStamped(this.cursor);
     if (prev && prev.end != null && prev.end > t0) prev.end = t0;
-    this.cursor += 1;
+    this.cursor = this.nextTimeable(this.cursor + 1);
     return true;
   }
 
@@ -83,7 +113,7 @@ export class SyncModel {
   // Make line i the next one to stamp (to re-time it).
   select(i) {
     if (i < 0 || i >= this.lines.length) return;
-    this.cursor = i;
+    this.cursor = this.nextTimeable(i);
   }
 
   nudge(i, delta) {
@@ -97,7 +127,7 @@ export class SyncModel {
 
   clear(i) {
     const line = this.lines[i];
-    if (!line) return;
+    if (!line || line.label) return;
     this.snapshot();
     line.start = null;
     line.end = null;
@@ -113,7 +143,7 @@ export class SyncModel {
   cues(duration = null) {
     const stamped = this.lines
       .map((l, index) => ({ ...l, index }))
-      .filter((l) => l.start != null)
+      .filter((l) => !l.label && l.start != null)
       .sort((a, b) => a.start - b.start);
     return stamped.map((l, k) => {
       const next = stamped[k + 1];
@@ -138,7 +168,7 @@ export class SyncModel {
     for (const cue of cues) {
       const norm = normalize(cue.text);
       for (let i = from; i < this.lines.length; i++) {
-        if (normalize(this.lines[i].text) === norm) {
+        if (!this.lines[i].label && normalize(this.lines[i].text) === norm) {
           this.lines[i].start = cue.start;
           this.lines[i].end = cue.end;
           from = i + 1;
@@ -155,7 +185,7 @@ export class SyncModel {
 
   static fromJSON(obj) {
     const m = new SyncModel(obj.lines || []);
-    if (Number.isInteger(obj.cursor)) m.cursor = obj.cursor;
+    if (Number.isInteger(obj.cursor)) m.cursor = m.nextTimeable(obj.cursor);
     return m;
   }
 }

@@ -129,7 +129,7 @@ $("#gh-open").addEventListener("click", async () => {
   sessionStorage.removeItem(TOKEN_KEY);
   if (token) (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
 
-  const { stamped, total } = { stamped: sync.model.stampedCount, total: sync.model.lines.length };
+  const { stampedCount: stamped, total } = sync.model;
   btn.disabled = true;
   status.textContent = "Opening pull request…";
   try {

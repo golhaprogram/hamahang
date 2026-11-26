@@ -100,3 +100,22 @@ test("applyCues matches text, ignoring ZWNJ and Arabic ye/kaf", () => {
   assert.equal(m.lines[2].start, 12);
   assert.equal(m.cursor, 1);
 });
+
+test("label lines are shown but skipped when timing and exporting", () => {
+  const m = SyncModel.fromText("(مولوی)\nجانا ز تو بیزار شوم؟ نی، نی، نی\n# بخش دوم\nجز با تو کسی یار شوم؟ نی، نی، نی");
+  assert.deepEqual(m.lines.map((l) => l.label), [true, false, true, false]);
+  assert.equal(m.cursor, 1);
+  assert.equal(m.total, 2);
+  m.stamp(5);
+  assert.equal(m.cursor, 3);
+  m.stamp(9);
+  assert.ok(m.done);
+  assert.deepEqual(m.cues(20).map((c) => c.index), [1, 3]);
+  m.select(2);
+  assert.equal(m.cursor, 3);
+});
+
+test("old saved state without label flags still loads", () => {
+  const m = SyncModel.fromJSON({ lines: [{ text: "(حافظ)", start: null, end: null }, { text: "x", start: null, end: null }], cursor: 0 });
+  assert.equal(m.cursor, 1);
+});

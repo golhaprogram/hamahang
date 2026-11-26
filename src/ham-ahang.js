@@ -36,7 +36,9 @@ audio { width: 100%; }
 .mode button[aria-pressed="true"] { background: var(--ls-accent); color: #fff; border-color: var(--ls-accent); }
 .progress { margin-inline-start: auto; color: var(--ls-muted); font-variant-numeric: tabular-nums; }
 select { font: inherit; }
-ol { list-style: none; margin: 0; padding: .5rem 0 9rem; }
+ol { list-style: none; margin: 0; padding: .5rem 0 13rem; }
+li.label { display: block; cursor: default; padding: .9rem .5rem .1rem; color: var(--ls-muted); font-size: .95rem; }
+.progress bdi { unicode-bidi: isolate; }
 li { display: grid; grid-template-columns: 4.5rem 1fr; gap: .5rem; align-items: baseline; padding: .55rem .5rem;
   border-radius: .5rem; cursor: pointer; border: 2px solid transparent; }
 li .t { font-variant-numeric: tabular-nums; color: var(--ls-muted); font-size: .85rem; direction: ltr; text-align: start; }
@@ -49,12 +51,14 @@ li.next .tools { display: flex; }
 li .tools button { font: inherit; font-size: .85rem; padding: .2rem .6rem; border-radius: .4rem; border: 1px solid var(--ls-border); background: var(--ls-bg); color: inherit; direction: ltr; }
 .bar { position: fixed; inset-inline: 0; bottom: 0; z-index: 3; background: var(--ls-bg); border-top: 1px solid var(--ls-border);
   padding: .6rem max(.6rem, env(safe-area-inset-left)) calc(.6rem + env(safe-area-inset-bottom)); display: grid;
-  grid-template-columns: 1fr 1fr 1fr; gap: .5rem; }
+  grid-template-columns: repeat(6, 1fr); gap: .45rem; direction: ltr; }
+.bar .silence, .bar .undo { grid-column: span 3; }
+.bar .seek { direction: ltr; padding: .5rem 0; min-height: 2.6rem; font-variant-numeric: tabular-nums; font-size: .95rem; }
 .bar button { font: inherit; border-radius: .7rem; border: 1px solid var(--ls-border); background: var(--ls-bg); color: inherit; padding: .7rem; min-height: 3rem; touch-action: manipulation; }
 .bar .stamp { grid-column: 1 / -1; background: var(--ls-accent); color: #fff; border: none; font-size: 1.35rem; min-height: 4.2rem; font-weight: 600; }
 .bar .stamp:active { filter: brightness(.85); }
 :host([mode="preview"]) .bar .stamp, :host([mode="preview"]) .bar .silence { display: none; }
-:host([mode="preview"]) .bar { grid-template-columns: 1fr 1fr; }
+:host([mode="preview"]) .bar .undo { grid-column: 1 / -1; }
 :host([started]) .hint, :host([started]) .keys { display: none; }
 .hint { color: var(--ls-muted); font-size: .85rem; margin: .4rem 0 0; }
 .keys { color: var(--ls-muted); font-size: .75rem; margin: .2rem 0 0; }
@@ -226,7 +230,7 @@ export class HamAhang extends HTMLElement {
         <button type="button" class="stamp">${t.stamp}</button>
         <button type="button" class="silence">${t.silence}</button>
         <button type="button" class="undo">${t.undo}</button>
-        <button type="button" class="back">${t.back}</button>
+        ${[-10, -5, -3, 3, 5, 10].map((d) => `<button type="button" class="seek" data-d="${d}">${d > 0 ? "+" : "−"}${Math.abs(d)}s</button>`).join("")}
       </div>`;
 
     const a = this._audio;
@@ -253,7 +257,7 @@ export class HamAhang extends HTMLElement {
       this.silence();
     });
     root.querySelector(".undo").addEventListener("click", () => this.undo());
-    root.querySelector(".back").addEventListener("click", () => this.seekBy(-3));
+    root.querySelectorAll(".seek").forEach((b) => b.addEventListener("click", () => this.seekBy(+b.dataset.d)));
     root.querySelector("ol").addEventListener("click", (e) => this._onListClick(e));
 
     this._renderList();
@@ -267,6 +271,13 @@ export class HamAhang extends HTMLElement {
     this.model.lines.forEach((line, i) => {
       const li = document.createElement("li");
       li.dataset.index = i;
+      if (line.label) {
+        li.className = "label";
+        li.dir = "auto";
+        li.textContent = line.text;
+        ol.append(li);
+        return;
+      }
       const time = document.createElement("span");
       time.className = "t" + (line.start == null ? " unset" : "");
       time.textContent = line.start == null ? "--:--" : formatClock(line.start);
@@ -299,9 +310,12 @@ export class HamAhang extends HTMLElement {
     const el = this.shadowRoot.querySelector(".progress");
     if (!el) return;
     const t = this._t();
-    const { stampedCount } = this.model;
-    const total = this.model.lines.length;
-    el.textContent = this.model.done ? `✓ ${t.done}` : `${stampedCount} / ${total}`;
+    const { stampedCount, total } = this.model;
+    el.innerHTML = "";
+    const b = document.createElement("bdi");
+    b.dir = "ltr";
+    b.textContent = this.model.done ? "" : `${stampedCount} / ${total}`;
+    el.append(this.model.done ? `✓ ${t.done}` : b);
     this.toggleAttribute("started", stampedCount > 0);
   }
 
@@ -315,7 +329,7 @@ export class HamAhang extends HTMLElement {
   _emitChange() {
     this.dispatchEvent(
       new CustomEvent("sync-change", {
-        detail: { stamped: this.model.stampedCount, total: this.model.lines.length },
+        detail: { stamped: this.model.stampedCount, total: this.model.total },
         bubbles: true,
       })
     );
@@ -332,7 +346,7 @@ export class HamAhang extends HTMLElement {
 
   _onListClick(e) {
     const li = e.target.closest("li");
-    if (!li) return;
+    if (!li || li.classList.contains("label")) return;
     const i = +li.dataset.index;
     const btn = e.target.closest("button");
     if (btn) {
@@ -365,8 +379,8 @@ export class HamAhang extends HTMLElement {
     if (k === " " || k === "enter") this.stamp();
     else if (k === "s") this.silence();
     else if (k === "z" || k === "backspace") this.undo();
-    else if (k === "arrowleft") this.seekBy(-3);
-    else if (k === "arrowright") this.seekBy(3);
+    else if (k === "arrowleft") this.seekBy(e.shiftKey ? -10 : -3);
+    else if (k === "arrowright") this.seekBy(e.shiftKey ? 10 : 3);
     else if (k === "p") this._audio.paused ? this._audio.play() : this._audio.pause();
     else return;
     e.preventDefault();
