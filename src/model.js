@@ -92,7 +92,19 @@ export class SyncModel {
     // An earlier line's explicit end can't run past this start.
     const prev = this.prevStamped(this.cursor);
     if (prev && prev.end != null && prev.end > t0) prev.end = t0;
-    this.cursor = this.nextTimeable(this.cursor + 1);
+    // Re-timing one line from the middle shouldn't line up the next (already
+    // timed) line to be overwritten: go back to the first untimed line.
+    const next = this.nextTimeable(this.cursor + 1);
+    this.cursor = next < this.lines.length && this.lines[next].start != null ? this.firstUnstamped() : next;
+    return true;
+  }
+
+  // Remove a line's silence mark, so it runs until the next line again.
+  clearEnd(i) {
+    const line = this.lines[i];
+    if (!line || line.end == null) return false;
+    this.snapshot();
+    line.end = null;
     return true;
   }
 

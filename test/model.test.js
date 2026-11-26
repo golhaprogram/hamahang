@@ -50,7 +50,8 @@ test("re-timing a selected line", () => {
   m.select(1);
   m.stamp(21.5);
   assert.equal(m.lines[1].start, 21.5);
-  assert.equal(m.cursor, 2);
+  assert.equal(m.lines[2].start, 30);
+  assert.equal(m.cursor, 3); // all timed, so nothing is lined up to be overwritten
 });
 
 test("restamping earlier truncates an explicit end that would overlap", () => {
@@ -118,4 +119,24 @@ test("label lines are shown but skipped when timing and exporting", () => {
 test("old saved state without label flags still loads", () => {
   const m = SyncModel.fromJSON({ lines: [{ text: "(حافظ)", start: null, end: null }, { text: "x", start: null, end: null }], cursor: 0 });
   assert.equal(m.cursor, 1);
+});
+
+test("re-timing one line in the middle returns to the first untimed line", () => {
+  const m = SyncModel.fromText("a\nb\nc\nd");
+  m.stamp(1); m.stamp(2); m.stamp(3);
+  m.select(1);
+  m.stamp(2.4);
+  assert.equal(m.lines[1].start, 2.4);
+  assert.equal(m.lines[2].start, 3);
+  assert.equal(m.cursor, 3);
+});
+
+test("adding a silence later and removing it", () => {
+  const m = SyncModel.fromText("a\nb\nc");
+  m.stamp(1); m.stamp(5); m.stamp(20);
+  m.silence(8); // added afterwards, after seeking back
+  assert.equal(m.lines[1].end, 8);
+  assert.deepEqual(m.cues(30).map((c) => [c.start, c.end]), [[1, 5], [5, 8], [20, 30]]);
+  m.clearEnd(1);
+  assert.equal(m.lines[1].end, null);
 });

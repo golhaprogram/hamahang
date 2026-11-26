@@ -17,6 +17,8 @@ A row wrapped in parentheses, like `(مولوی)`, or starting with `#` is a lab
 
 **Silence** is for the end of a block. Each line normally stays on screen until the next one starts, which is right for lines sung back to back. Before an instrumental passage, an announcer, or a long gap, tap **Silence** when the voice stops so the text clears instead of hanging over the music.
 
+**Fixing things later.** Tap a line to select it: the audio jumps to just before it, and the next tap of **This line** re-times only that line, then goes back to the first untimed line. To add a silence afterwards, seek to where the voice stops and tap **Silence**; it ends whichever line was playing. A line with a silence shows ⏹ and its end time, and **Remove silence** in its tools takes it off.
+
 Everything can also be set with URL parameters, so another site can link straight into a ready-to-time session:
 
 | Parameter | Meaning |

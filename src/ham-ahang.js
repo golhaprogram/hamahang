@@ -46,7 +46,8 @@ li .t.unset { opacity: .5; }
 li .text { font-size: 1.15rem; line-height: 1.7; }
 li.next { background: var(--ls-next); border-color: var(--ls-accent); }
 li.active { background: var(--ls-active); }
-li .tools { grid-column: 2; display: none; gap: .4rem; }
+li .tools { grid-column: 2; display: none; gap: .4rem; flex-wrap: wrap; }
+li .end { grid-column: 2; font-size: .8rem; color: var(--ls-muted); }
 li.next .tools { display: flex; }
 li .tools button { font: inherit; font-size: .85rem; padding: .2rem .6rem; border-radius: .4rem; border: 1px solid var(--ls-border); background: var(--ls-bg); color: inherit; direction: ltr; }
 .bar { position: fixed; inset-inline: 0; bottom: 0; z-index: 3; background: var(--ls-bg); border-top: 1px solid var(--ls-border);
@@ -290,8 +291,19 @@ export class HamAhang extends HTMLElement {
       tools.innerHTML = `
         <button type="button" data-act="nudge" data-d="-0.25">−0.25s</button>
         <button type="button" data-act="nudge" data-d="0.25">+0.25s</button>
+        ${line.end != null ? `<button type="button" data-act="clear-end">${t.clearEnd}</button>` : ""}
         <button type="button" data-act="clear">${t.clear}</button>`;
-      li.append(time, text, tools);
+      li.append(time, text);
+      if (line.end != null) {
+        const end = document.createElement("span");
+        end.className = "end";
+        end.textContent = `⏹ ${t.silence} `;
+        const bt = document.createElement("bdi");
+        bt.textContent = formatClock(line.end);
+        end.append(bt);
+        li.append(end);
+      }
+      li.append(tools);
       ol.append(li);
     });
     this._updateHighlights();
@@ -354,6 +366,8 @@ export class HamAhang extends HTMLElement {
         this.model.nudge(i, +btn.dataset.d);
         const s = this.model.lines[i].start;
         if (s != null) this._audio.currentTime = Math.max(0, s - 0.5);
+      } else if (btn.dataset.act === "clear-end") {
+        this.model.clearEnd(i);
       } else if (btn.dataset.act === "clear") {
         this.model.clear(i);
       }
