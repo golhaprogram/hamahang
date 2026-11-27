@@ -35,10 +35,23 @@ let remoteVtt = null;
 })();
 
 async function fetchText(url, optional = false) {
-  const res = await fetch(url);
+  let res;
+  try {
+    res = await fetch(url);
+  } catch {
+    // The browser hides the reason: usually the file doesn't exist and the
+    // error page has no CORS header, or the server doesn't allow
+    // cross-origin requests at all.
+    if (optional) return null;
+    throw new Error(
+      `Couldn't load ${url}. Check that the file exists and that its server sends ` +
+        `Access-Control-Allow-Origin (cross-origin requests are blocked otherwise). ` +
+        `You can still paste the lyrics below.`
+    );
+  }
   if (!res.ok) {
     if (optional && res.status === 404) return null;
-    throw new Error(`Couldn't load ${url} (${res.status}). The server must allow cross-origin requests.`);
+    throw new Error(`Couldn't load ${url} (HTTP ${res.status}). You can still paste the lyrics below.`);
   }
   return res.text();
 }
