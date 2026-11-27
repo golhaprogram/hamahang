@@ -18,7 +18,7 @@ export function parseLines(text) {
   return String(text ?? "")
     .split(/\r?\n/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 0)
+    .filter((l) => l.length > 0 && !/^([-*_])(\s*\1){2,}$/.test(l)) // drop blank rows and Markdown --- rules
     .map((text) => ({ text, start: null, end: null, label: isLabel(text) }));
 }
 

@@ -140,3 +140,9 @@ test("adding a silence later and removing it", () => {
   m.clearEnd(1);
   assert.equal(m.lines[1].end, null);
 });
+
+test("Markdown separators pasted from a program file are dropped", () => {
+  const m = SyncModel.fromText("(مولوی)  \nجانا ز تو بیزار شوم؟ نی، نی، نی  \n\n---\n\n(صائب تبریزی)  \nمرو بیرون ز عشرت‌خانهٔ دل  \n* * *\n");
+  assert.deepEqual(m.lines.map((l) => l.text), ["(مولوی)", "جانا ز تو بیزار شوم؟ نی، نی، نی", "(صائب تبریزی)", "مرو بیرون ز عشرت‌خانهٔ دل"]);
+  assert.equal(m.total, 2);
+});
