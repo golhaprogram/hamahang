@@ -10,7 +10,10 @@ const STRINGS = {
     next: "Next",
     clear: "Clear",
     clearEnd: "Remove silence",
-    hint: "Play, then tap “This line” as each line starts. Tap “Silence” when the singing stops before an instrumental part. Tap a line to re-time it.",
+    again: "Again at {t}",
+    repeatFrom: "Poem again from here at {t}",
+    removeRepeat: "Remove this repeat",
+    hint: "Play, then tap “This line” as each line starts. Tap “Silence” when the singing stops before an instrumental part. Tap a line to re-time it, or, if it's being sung again, to add a repeat.",
     keys: "Keys: Space = this line · S = silence · Z = undo · ←/→ = 3s (Shift: 10s) · P = play/pause",
   },
   fa: {
@@ -24,7 +27,10 @@ const STRINGS = {
     next: "بعدی",
     clear: "پاک کن",
     clearEnd: "حذف سکوت",
-    hint: "پخش را بزنید و با شروع هر خط «این خط» را بزنید. وقتی آواز پیش از ساز تمام شد «سکوت» را بزنید. برای زمان‌بندی دوباره، روی خط بزنید.",
+    again: "دوباره در {t}",
+    repeatFrom: "تکرار شعر از اینجا در {t}",
+    removeRepeat: "حذف این تکرار",
+    hint: "پخش را بزنید و با شروع هر خط «این خط» را بزنید. وقتی آواز پیش از ساز تمام شد «سکوت» را بزنید. برای زمان‌بندی دوباره روی خط بزنید؛ اگر دوباره خوانده می‌شود، همان‌جا تکرارش را اضافه کنید.",
     keys: "کلیدها: فاصله = این خط · S = سکوت · Z = برگرد · ←/→ = ۳ ثانیه (با Shift: ۱۰) · P = پخش/مکث",
   },
 };

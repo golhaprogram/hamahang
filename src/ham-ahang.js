@@ -12,7 +12,7 @@
 //   .setAudioSource(url)         e.g. a blob: URL for a local file
 //   .loadVTT(text)               apply timings from an existing WebVTT file
 //   .toVTT() / .toLRC()          export
-//   .cues()                      resolved [{index, text, start, end}]
+//   .cues()                      resolved [{index, text, start, end, repeat?}], in time order
 //
 // Events:
 //   sync-change    detail { stamped, total }
@@ -48,6 +48,11 @@ li.next { background: var(--ls-next); border-color: var(--ls-accent); }
 li.active { background: var(--ls-active); }
 li .tools { grid-column: 2; display: none; gap: .4rem; flex-wrap: wrap; }
 li .end { grid-column: 2; font-size: .8rem; color: var(--ls-muted); }
+li .reps { grid-column: 2; display: flex; gap: .35rem; flex-wrap: wrap; }
+li .rep { display: inline-flex; align-items: center; border: 1px solid var(--ls-border); border-radius: 999px; font-size: .8rem; color: var(--ls-muted); direction: ltr; }
+li .rep button { font: inherit; background: none; border: none; color: inherit; padding: .1rem .45rem; cursor: pointer; }
+li .rep button[data-act="rep-remove"] { padding-inline-start: 0; }
+li .tools button.again { direction: inherit; }
 li.next .tools { display: flex; }
 li .tools button { font: inherit; font-size: .85rem; padding: .2rem .6rem; border-radius: .4rem; border: 1px solid var(--ls-border); background: var(--ls-bg); color: inherit; direction: ltr; }
 .bar { position: fixed; inset-inline: 0; bottom: 0; z-index: 3; background: var(--ls-bg); border-top: 1px solid var(--ls-border);
@@ -77,6 +82,7 @@ export class HamAhang extends HTMLElement {
     this._text = "";
     this._mode = "sync";
     this._activeIndex = -1;
+    this._picked = null; // { i, at, t }: a line tapped while listening, at audio time at (t = at minus tap delay)
     this._wakeLock = null;
     this.attachShadow({ mode: "open" });
     this._onKey = this._onKey.bind(this);
@@ -293,6 +299,13 @@ export class HamAhang extends HTMLElement {
         <button type="button" data-act="nudge" data-d="0.25">+0.25s</button>
         ${line.end != null ? `<button type="button" data-act="clear-end">${t.clearEnd}</button>` : ""}
         <button type="button" data-act="clear">${t.clear}</button>`;
+      if (line.start != null) {
+        tools.insertAdjacentHTML(
+          "beforeend",
+          `<button type="button" class="again" data-act="again" hidden></button>
+           <button type="button" class="again" data-act="repeat-from" hidden></button>`
+        );
+      }
       li.append(time, text);
       if (line.end != null) {
         const end = document.createElement("span");
@@ -302,6 +315,18 @@ export class HamAhang extends HTMLElement {
         bt.textContent = formatClock(line.end);
         end.append(bt);
         li.append(end);
+      }
+      if (line.repeats.length) {
+        const reps = document.createElement("span");
+        reps.className = "reps";
+        line.repeats.forEach((r, k) => {
+          const chip = document.createElement("span");
+          chip.className = "rep";
+          chip.innerHTML = `<button type="button" data-act="rep-seek" data-k="${k}"></button><button type="button" data-act="rep-remove" data-k="${k}" aria-label="${t.removeRepeat}">✕</button>`;
+          chip.firstChild.textContent = `↻ ${formatClock(r.start)}${r.end != null ? ` – ${formatClock(r.end)}` : ""}`;
+          reps.append(chip);
+        });
+        li.append(reps);
       }
       li.append(tools);
       ol.append(li);
@@ -332,6 +357,7 @@ export class HamAhang extends HTMLElement {
   }
 
   _afterChange() {
+    this._picked = null;
     this._save();
     this._renderList();
     this._scrollTo(this._mode === "sync" ? this.model.cursor : this._activeIndex);
@@ -370,6 +396,19 @@ export class HamAhang extends HTMLElement {
         this.model.clearEnd(i);
       } else if (btn.dataset.act === "clear") {
         this.model.clear(i);
+      } else if (btn.dataset.act === "rep-seek") {
+        const r = this.model.lines[i].repeats[+btn.dataset.k];
+        if (r) this._audio.currentTime = this._mode === "preview" ? r.start : Math.max(0, r.start - 0.5);
+        return;
+      } else if (btn.dataset.act === "rep-remove") {
+        this.model.removeRepeat(i, +btn.dataset.k);
+      } else if (btn.dataset.act === "again" || btn.dataset.act === "repeat-from") {
+        // Back to where the reader was listening when they tapped the line.
+        const p = this._picked;
+        if (!p || p.i !== i) return;
+        if (btn.dataset.act === "again") this.model.again(i, p.t);
+        else this.model.repeatFrom(i, p.t, this._duration());
+        this._audio.currentTime = p.at;
       }
       this._afterChange();
       return;
@@ -379,10 +418,28 @@ export class HamAhang extends HTMLElement {
       if (line.start != null) this._audio.currentTime = line.start;
       return;
     }
+    // Remember where we were: if this line is being sung again right now, the
+    // tools offer to add a repeat here instead of re-timing it.
+    const a = this._audio;
+    const at = a.currentTime;
+    const t = round(a.paused ? at : at - this.offset);
+    this._picked = line.start != null && t > line.start + 1 ? { i, at, t } : null;
     this.model.select(i);
     const ref = line.start ?? this.model.prevStamped(i)?.start ?? 0;
-    this._audio.currentTime = Math.max(0, ref - 2);
+    a.currentTime = Math.max(0, ref - 2);
+    this._showRepeatTools(li);
     this._updateHighlights();
+  }
+
+  _showRepeatTools(li) {
+    const t = this._t();
+    const p = this._picked;
+    li.querySelectorAll(".tools .again").forEach((b) => {
+      b.hidden = !p;
+      if (!p) return;
+      const label = b.dataset.act === "again" ? t.again : t.repeatFrom;
+      b.textContent = `↻ ${label.replace("{t}", formatClock(p.t))}`;
+    });
   }
 
   _onKey(e) {
@@ -463,6 +520,10 @@ export class HamAhang extends HTMLElement {
     this._wakeLock?.release().catch(() => {});
     this._wakeLock = null;
   }
+}
+
+function round(t) {
+  return Math.round(t * 1000) / 1000;
 }
 
 if (!customElements.get("ham-ahang")) customElements.define("ham-ahang", HamAhang);

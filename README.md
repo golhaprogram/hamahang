@@ -3,6 +3,7 @@
 *Hamahang* (هماهنگ: ham + āhang, "together" + "melody", meaning "in sync") times lyrics to audio by tapping along, in any browser, including on a phone. Built for Persian poetry sung on the [Golha](https://golhaprogram.com) radio programs, so right-to-left text is a first-class case, but nothing in it is specific to Golha.
 
 - **Tap to time:** press play, tap **This line** as each line starts and **Silence** when the singing stops.
+- **Repeats:** a line read again, or a whole poem performed a second time, gets extra times without being pasted twice.
 - **Fix as you go:** tap any line to jump back and re-time it, nudge ±0.25 s, skip ±3/5/10 s, undo, play at 0.5–0.9× speed.
 - **Never lose work:** progress is saved in the browser for each audio file and restored when you come back.
 - **Preview:** plays the audio with the current line highlighted, so you can check the timing.
@@ -18,6 +19,13 @@ A row wrapped in parentheses, like `(مولوی)`, or starting with `#` is a lab
 **Silence** is for the end of a block. Each line normally stays on screen until the next one starts, which is right for lines sung back to back. Before an instrumental passage, an announcer, or a long gap, tap **Silence** when the voice stops so the text clears instead of hanging over the music.
 
 **Fixing things later.** Tap a line to select it: the audio jumps to just before it, and the next tap of **This line** re-times only that line, then goes back to the first untimed line. To add a silence afterwards, seek to where the voice stops and tap **Silence**; it ends whichever line was playing. A line with a silence shows ⏹ and its end time, and **Remove silence** in its tools takes it off.
+
+**Repeats.** When a line you already timed is sung or read again, tap it right then. Besides re-timing, its tools offer two more buttons, both at the moment you tapped:
+
+- **Again at …** adds one more time to that line, e.g. an announcer reading the last line of a quatrain again.
+- **Poem again from here at …** copies the timing of the whole first performance, from this line to the next label, shifted to start there. For a reprise that is the same performance, that's every line in one tap; check it in Preview.
+
+Either way the audio goes back to where you were. Extra times show under the line as ↻ chips: tap one to hear it, ✕ to remove it. Tap **Silence** to end a repeated line like any other. In the VTT a repeat is just another cue with the same text; loading a VTT gives the k-th cue with a text to the k-th line with that text, and any extra ones become repeats of its last copy.
 
 Everything can also be set with URL parameters, so another site can link straight into a ready-to-time session:
 
